@@ -1,0 +1,61 @@
+{
+  "expo": {
+    "name": "Bricks",
+    "slug": "bricks",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "bricks",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": false,
+    "icon": "./assets/icon.png",
+    "ios": {
+      "bundleIdentifier": "bricks.app.development",
+      "supportsTablet": false,
+      "deploymentTarget": "16.0",
+      "infoPlist": {
+        "NFCReaderUsageDescription": "Bricks uses NFC to read your cube to lock and unlock app blocking."
+      },
+      "entitlements": {
+        "com.apple.developer.nfc.readersession.formats": [
+          "NDEF",
+          "TAG"
+        ],
+        "com.apple.developer.family-controls": true
+      }
+    },
+    "android": {
+      "package": "bricks.app.development",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#FF6B3D"
+      },
+      "permissions": [
+        "android.permission.NFC",
+        "android.permission.BIND_ACCESSIBILITY_SERVICE",
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.PACKAGE_USAGE_STATS",
+        "android.permission.POST_NOTIFICATIONS"
+      ]
+    },
+    "plugins": [
+      [
+        "react-native-nfc-manager",
+        {
+          "nfcPermission": "Bricks uses NFC to read your cube.",
+          "selectIdentifiers": [],
+          "systemCodes": []
+        }
+      ],
+      "expo-asset",
+      [
+        "expo-build-properties",
+        { "ios": { "deploymentTarget": "16.0" } }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "1f130823-c96a-4c67-ad68-5214873c6d9d"
+      }
+    }
+  }
+}

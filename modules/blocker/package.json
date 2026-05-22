@@ -1,0 +1,8 @@
+{
+  "name": "blocker",
+  "version": "0.1.0",
+  "description": "Native module: Android AccessibilityService that blocks selected apps",
+  "main": "index.ts",
+  "types": "index.ts",
+  "private": true
+}

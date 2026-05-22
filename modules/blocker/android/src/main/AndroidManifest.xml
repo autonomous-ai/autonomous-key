@@ -1,0 +1,25 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <application>
+    <service
+      android:name=".BlockerAccessibilityService"
+      android:label="Bricks app blocker"
+      android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
+      android:exported="true">
+      <intent-filter>
+        <action android:name="android.accessibilityservice.AccessibilityService" />
+      </intent-filter>
+      <meta-data
+        android:name="android.accessibilityservice"
+        android:resource="@xml/bricks_accessibility_service_config" />
+    </service>
+
+    <activity
+      android:name=".BlockScreenActivity"
+      android:exported="false"
+      android:excludeFromRecents="true"
+      android:launchMode="singleTask"
+      android:taskAffinity=""
+      android:noHistory="true"
+      android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen" />
+  </application>
+</manifest>

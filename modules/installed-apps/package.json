@@ -1,0 +1,8 @@
+{
+  "name": "installed-apps",
+  "version": "0.1.0",
+  "description": "Native module: list installed apps (Android) / present FamilyActivityPicker (iOS)",
+  "main": "index.ts",
+  "types": "index.ts",
+  "private": true
+}
