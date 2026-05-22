@@ -70,12 +70,14 @@ function recordSession(stats: Stats, mode: Mode, lockedAt: number, unlockedAt: n
     const segmentEnd = Math.min(dayEnd, unlockedAt);
     const ms = segmentEnd - cursor;
     const key = dateKey(cursor);
-    const prev: DayStats = out.byDay[key] ?? { totalMs: 0, perApp: {} };
+    const prev: DayStats = out.byDay[key] ?? { totalMs: 0, perApp: {}, perMode: {} };
     const perApp = { ...prev.perApp };
     for (const id of mode.blockedAppIds) {
       perApp[id] = (perApp[id] ?? 0) + ms;
     }
-    out.byDay[key] = { totalMs: prev.totalMs + ms, perApp };
+    const perMode = { ...(prev.perMode ?? {}) };
+    perMode[mode.id] = (perMode[mode.id] ?? 0) + ms;
+    out.byDay[key] = { totalMs: prev.totalMs + ms, perApp, perMode };
     cursor = segmentEnd;
   }
   return prune(out);
@@ -154,7 +156,9 @@ export const useStore = create<PersistedState & Actions & { hydrated: boolean }>
     let nextStats = state.stats;
     if (state.lock.activeModeId && state.lock.lockedAt) {
       const mode = state.modes.find((m) => m.id === state.lock.activeModeId);
-      if (mode && mode.blockedAppIds.length > 0) {
+      // Record session if Mode has any selection — blockedAppIds for Android,
+      // or iosSelectionToken for iOS (where Apple hides identities).
+      if (mode && (mode.blockedAppIds.length > 0 || mode.iosSelectionToken)) {
         nextStats = recordSession(state.stats, mode, state.lock.lockedAt, Date.now());
       }
     }
@@ -191,6 +195,22 @@ export function selectTopAppsInWindow(stats: Stats, days = RETENTION_DAYS) {
   }
   return Object.entries(totals)
     .map(([appId, ms]) => ({ appId, totalMs: ms }))
+    .sort((a, b) => b.totalMs - a.totalMs);
+}
+
+export function selectTopModesInWindow(stats: Stats, days = RETENTION_DAYS) {
+  const today = startOfDay(Date.now());
+  const cutoff = today - (days - 1) * 24 * 60 * 60 * 1000;
+  const totals: Record<string, number> = {};
+  for (const [k, v] of Object.entries(stats.byDay)) {
+    const t = new Date(`${k}T00:00:00`).getTime();
+    if (t < cutoff) continue;
+    for (const [modeId, ms] of Object.entries(v.perMode ?? {})) {
+      totals[modeId] = (totals[modeId] ?? 0) + ms;
+    }
+  }
+  return Object.entries(totals)
+    .map(([modeId, ms]) => ({ modeId, totalMs: ms }))
     .sort((a, b) => b.totalMs - a.totalMs);
 }
 

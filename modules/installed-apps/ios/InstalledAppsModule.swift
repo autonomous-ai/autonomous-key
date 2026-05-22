@@ -27,6 +27,12 @@ public class InstalledAppsModule: Module {
       )
     }
 
+    View(SelectionLabelView.self) {
+      Prop("token") { (view: SelectionLabelView, token: String) in
+        view.setToken(token)
+      }
+    }
+
     AsyncFunction("presentPicker") { (opts: [String: Any]?) -> [String: Any] in
       // If caller passes an existing selectionToken (e.g. editing a Mode),
       // pre-load that selection so the picker opens with previous ticks.

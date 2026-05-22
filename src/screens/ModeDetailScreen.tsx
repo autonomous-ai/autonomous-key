@@ -3,6 +3,7 @@ import { Alert, FlatList, Image, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Button } from '@/components/Button';
+import { SelectionLabel, isSelectionLabelAvailable } from '@/components/SelectionLabel';
 import { useStore } from '@/store';
 import { colors, radius, spacing } from '@/theme';
 import type { RootStackParamList } from '@/types';
@@ -87,10 +88,14 @@ export function ModeDetailScreen({ route, navigation }: Props) {
 
       {iosCount > 0 && apps.length === 0 ? (
         <View style={styles.iosBox}>
-          <Text style={styles.iosBoxTitle}>{iosCount} apps selected via Apple's picker</Text>
+          <Text style={styles.iosBoxTitle}>{iosCount} apps in this Mode</Text>
+          {isSelectionLabelAvailable && mode.iosSelectionToken ? (
+            <View style={styles.labelHost}>
+              <SelectionLabel token={mode.iosSelectionToken} style={{ minHeight: 40 + iosCount * 28 }} />
+            </View>
+          ) : null}
           <Text style={styles.iosBoxBody}>
-            iOS hides app identities for privacy. The selection is stored
-            securely and Bricks will shield those apps when you lock.
+            Icons + names are rendered privately by iOS — Bricks itself never sees them.
           </Text>
           <Button
             title="Change selection"
@@ -208,6 +213,7 @@ const styles = StyleSheet.create({
   },
   iosBoxTitle: { color: colors.text, fontSize: 16, fontWeight: '700' },
   iosBoxBody: { color: colors.textMuted, fontSize: 13, lineHeight: 18, marginTop: spacing.sm },
+  labelHost: { marginTop: spacing.sm },
   footer: {
     padding: spacing.md,
     borderTopWidth: 1,

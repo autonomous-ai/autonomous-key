@@ -6,9 +6,11 @@ import {
   useStore,
   selectDailySeries,
   selectTopAppsInWindow,
+  selectTopModesInWindow,
   selectTotalMs,
   RETENTION_DAYS,
 } from '@/store';
+import { SelectionLabel, isSelectionLabelAvailable } from '@/components/SelectionLabel';
 import { colors, radius, spacing } from '@/theme';
 import type { MainTabsParamList } from '@/types';
 
@@ -16,6 +18,7 @@ type Props = BottomTabScreenProps<MainTabsParamList, 'Stats'>;
 
 export function StatsScreen({}: Props) {
   const stats = useStore((s) => s.stats);
+  const modes = useStore((s) => s.modes);
   const appNames = useStore((s) => s.appNames);
   const appIcons = useStore((s) => s.appIcons);
   const lock = useStore((s) => s.lock);
@@ -36,10 +39,12 @@ export function StatsScreen({}: Props) {
       const segmentEnd = Math.min(dayEnd, now);
       const ms = segmentEnd - cursor;
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-      const prev = out.byDay[key] ?? { totalMs: 0, perApp: {} };
+      const prev = out.byDay[key] ?? { totalMs: 0, perApp: {}, perMode: {} };
       const perApp = { ...prev.perApp };
       for (const id of activeMode.blockedAppIds) perApp[id] = (perApp[id] ?? 0) + ms;
-      out.byDay[key] = { totalMs: prev.totalMs + ms, perApp };
+      const perMode = { ...(prev.perMode ?? {}) };
+      perMode[activeMode.id] = (perMode[activeMode.id] ?? 0) + ms;
+      out.byDay[key] = { totalMs: prev.totalMs + ms, perApp, perMode };
       cursor = segmentEnd;
     }
     return out;
@@ -47,19 +52,36 @@ export function StatsScreen({}: Props) {
 
   const series = useMemo(() => selectDailySeries(liveStats, RETENTION_DAYS), [liveStats]);
   const top = useMemo(() => selectTopAppsInWindow(liveStats, RETENTION_DAYS), [liveStats]);
+  const topModes = useMemo(() => selectTopModesInWindow(liveStats, RETENTION_DAYS), [liveStats]);
   const total = useMemo(() => selectTotalMs(liveStats, RETENTION_DAYS), [liveStats]);
+  const modeById = useMemo(() => {
+    const m: Record<string, { name: string; emoji: string }> = {};
+    for (const mode of modes) m[mode.id] = { name: mode.name, emoji: mode.emoji ?? '🧱' };
+    return m;
+  }, [modes]);
   const todayMs = series[series.length - 1]?.totalMs ?? 0;
   const max = Math.max(...series.map((d) => d.totalMs), 1);
 
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [expandedMode, setExpandedMode] = useState<string | null>(null);
   const selectedBreakdown = useMemo(() => {
     if (!selectedDate) return null;
     const day = liveStats.byDay[selectedDate];
-    if (!day) return { date: selectedDate, totalMs: 0, apps: [] as { id: string; ms: number }[] };
+    if (!day) {
+      return {
+        date: selectedDate,
+        totalMs: 0,
+        apps: [] as { id: string; ms: number }[],
+        modes: [] as { id: string; ms: number }[],
+      };
+    }
     const apps = Object.entries(day.perApp)
       .map(([id, ms]) => ({ id, ms }))
       .sort((a, b) => b.ms - a.ms);
-    return { date: selectedDate, totalMs: day.totalMs, apps };
+    const modesList = Object.entries(day.perMode ?? {})
+      .map(([id, ms]) => ({ id, ms }))
+      .sort((a, b) => b.ms - a.ms);
+    return { date: selectedDate, totalMs: day.totalMs, apps, modes: modesList };
   }, [selectedDate, liveStats]);
 
   return (
@@ -139,48 +161,118 @@ export function StatsScreen({}: Props) {
                   <Text style={styles.breakdownClose}>✕</Text>
                 </Pressable>
               </View>
-              {selectedBreakdown.apps.length === 0 ? (
+              {selectedBreakdown.modes.length === 0 && selectedBreakdown.apps.length === 0 ? (
                 <Text style={styles.breakdownEmpty}>Not locked on this day.</Text>
               ) : (
-                selectedBreakdown.apps.map((row) => {
-                  const icon = appIcons[row.id];
-                  return (
-                    <View key={row.id} style={styles.breakdownRow}>
-                      {icon ? (
-                        <Image
-                          source={{ uri: `data:image/png;base64,${icon}` }}
-                          style={styles.breakdownIcon}
-                        />
-                      ) : (
-                        <View style={styles.breakdownIconPh}>
-                          <Text style={styles.breakdownIconPhText}>
-                            {(appNames[row.id] || row.id).charAt(0).toUpperCase()}
-                          </Text>
-                        </View>
-                      )}
-                      <Text style={styles.breakdownName} numberOfLines={1}>
-                        {appNames[row.id] ?? row.id}
-                      </Text>
-                      <Text style={styles.breakdownMs}>{formatHuman(row.ms)}</Text>
+                <>
+                  {/* Per-Mode breakdown — works on both iOS + Android */}
+                  {selectedBreakdown.modes.map((row) => {
+                    const m = modeById[row.id];
+                    return (
+                      <View key={`mode-${row.id}`} style={styles.breakdownRow}>
+                        <Text style={styles.breakdownEmojiCell}>{m?.emoji ?? '🧱'}</Text>
+                        <Text style={styles.breakdownName} numberOfLines={1}>
+                          {m?.name ?? row.id}
+                        </Text>
+                        <Text style={styles.breakdownMs}>{formatHuman(row.ms)}</Text>
+                      </View>
+                    );
+                  })}
+                  {/* Per-app breakdown — Android only (iOS hides identities) */}
+                  {selectedBreakdown.apps.length > 0 && (
+                    <View style={styles.breakdownAppsSection}>
+                      <Text style={styles.breakdownAppsLabel}>APPS</Text>
+                      {selectedBreakdown.apps.map((row) => {
+                        const icon = appIcons[row.id];
+                        return (
+                          <View key={`app-${row.id}`} style={styles.breakdownRow}>
+                            {icon ? (
+                              <Image
+                                source={{ uri: `data:image/png;base64,${icon}` }}
+                                style={styles.breakdownIcon}
+                              />
+                            ) : (
+                              <View style={styles.breakdownIconPh}>
+                                <Text style={styles.breakdownIconPhText}>
+                                  {(appNames[row.id] || row.id).charAt(0).toUpperCase()}
+                                </Text>
+                              </View>
+                            )}
+                            <Text style={styles.breakdownName} numberOfLines={1}>
+                              {appNames[row.id] ?? row.id}
+                            </Text>
+                            <Text style={styles.breakdownMs}>{formatHuman(row.ms)}</Text>
+                          </View>
+                        );
+                      })}
                     </View>
-                  );
-                })
+                  )}
+                </>
               )}
             </View>
           ) : (
-            <Text style={styles.chartHint}>Tap a bar to see per-app breakdown for that day.</Text>
+            <Text style={styles.chartHint}>Tap a bar to see that day's breakdown.</Text>
           )}
         </View>
 
-        {/* Top apps */}
+        {/* Top Modes (works on both iOS + Android) */}
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>MOST BLOCKED · 30 DAYS</Text>
-          {top.length === 0 ? (
+          <Text style={styles.sectionLabel}>TOP MODES · 30 DAYS</Text>
+          {topModes.length === 0 ? (
             <View style={styles.card}>
               <Text style={styles.empty}>Lock a Mode to start tracking.</Text>
             </View>
           ) : (
-            top.slice(0, 10).map((row) => {
+            topModes.slice(0, 10).map((row) => {
+              const m = modeById[row.modeId];
+              const mode = modes.find((x) => x.id === row.modeId);
+              const expanded = expandedMode === row.modeId;
+              const canExpand = !!(isSelectionLabelAvailable && mode?.iosSelectionToken);
+              return (
+                <Pressable
+                  key={row.modeId}
+                  onPress={canExpand ? () => setExpandedMode(expanded ? null : row.modeId) : undefined}
+                  style={[styles.appRow, { flexDirection: 'column', alignItems: 'stretch' }]}
+                >
+                  <View style={styles.modeRowHead}>
+                    <View style={styles.appIcon}>
+                      <Text style={styles.appIconText}>{m?.emoji ?? '🧱'}</Text>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.appName} numberOfLines={1}>
+                        {m?.name ?? row.modeId}
+                      </Text>
+                      <View style={styles.appBarTrack}>
+                        <View
+                          style={[
+                            styles.appBar,
+                            { width: `${(row.totalMs / topModes[0].totalMs) * 100}%` },
+                          ]}
+                        />
+                      </View>
+                    </View>
+                    <Text style={styles.appMs}>{formatHuman(row.totalMs)}</Text>
+                    {canExpand && <Text style={styles.chevron}>{expanded ? '⌃' : '⌄'}</Text>}
+                  </View>
+                  {expanded && canExpand && mode?.iosSelectionToken && (
+                    <View style={styles.expandedLabels}>
+                      <SelectionLabel
+                        token={mode.iosSelectionToken}
+                        style={{ minHeight: 40 + (mode.iosSelectionCount ?? 1) * 28 }}
+                      />
+                    </View>
+                  )}
+                </Pressable>
+              );
+            })
+          )}
+        </View>
+
+        {/* Top apps — Android only (iOS hides app identities) */}
+        {top.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>MOST BLOCKED APPS · 30 DAYS</Text>
+            {top.slice(0, 10).map((row) => {
               const icon = appIcons[row.appId];
               return (
                 <View key={row.appId} style={styles.appRow}>
@@ -212,9 +304,9 @@ export function StatsScreen({}: Props) {
                   <Text style={styles.appMs}>{formatHuman(row.totalMs)}</Text>
                 </View>
               );
-            })
-          )}
-        </View>
+            })}
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -333,6 +425,9 @@ const styles = StyleSheet.create({
   breakdownIconPhText: { color: colors.textMuted, fontSize: 11, fontWeight: '700' },
   breakdownName: { flex: 1, color: colors.text, fontSize: 13 },
   breakdownMs: { color: colors.textMuted, fontSize: 12, fontVariant: ['tabular-nums'] },
+  breakdownEmojiCell: { fontSize: 18, width: 24, textAlign: 'center' },
+  breakdownAppsSection: { marginTop: spacing.sm, paddingTop: spacing.sm, borderTopWidth: 1, borderTopColor: colors.border },
+  breakdownAppsLabel: { color: colors.textMuted, fontSize: 10, letterSpacing: 1.5, fontWeight: '700', marginBottom: 4 },
   appRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -358,5 +453,8 @@ const styles = StyleSheet.create({
   appBarTrack: { height: 4, backgroundColor: colors.surfaceAlt, borderRadius: 2, overflow: 'hidden' },
   appBar: { height: '100%', backgroundColor: colors.accent },
   appMs: { color: colors.textMuted, fontSize: 12, fontVariant: ['tabular-nums'] },
+  modeRowHead: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, width: '100%' },
+  chevron: { color: colors.textMuted, fontSize: 16, marginLeft: spacing.xs },
+  expandedLabels: { marginTop: spacing.sm, paddingTop: spacing.sm, borderTopWidth: 1, borderTopColor: colors.border },
   empty: { color: colors.textMuted, fontSize: 14, textAlign: 'center' },
 });

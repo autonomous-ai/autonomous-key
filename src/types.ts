@@ -31,8 +31,10 @@ export type LockState = {
 
 export type DayStats = {
   totalMs: number;
-  /** appId → ms blocked that day */
+  /** appId → ms blocked that day (Android only — iOS hides identities). */
   perApp: Record<string, number>;
+  /** modeId → ms locked under that Mode that day. */
+  perMode: Record<string, number>;
 };
 
 export type Stats = {

@@ -1,7 +1,8 @@
 {
   "platforms": ["ios", "android"],
   "ios": {
-    "modules": ["InstalledAppsModule"]
+    "modules": ["InstalledAppsModule"],
+    "appDelegateSubscribers": []
   },
   "android": {
     "modules": ["expo.modules.installedapps.InstalledAppsModule"]
