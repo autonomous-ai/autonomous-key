@@ -1,8 +1,8 @@
-# NodeXit
+# Autonomous Key
 
 > Tap an NFC tag to lock yourself out of distracting apps. Tap it again to unlock.
 
-NodeXit is a self-discipline app blocker that uses a physical NFC tag as the only key. You pick apps to block, scan the tag to lock, scan again to unlock. The physical scan is intentional friction — you can't impulse-bypass yourself by tapping a button.
+Autonomous Key is a self-discipline app blocker that uses a physical NFC tag as the only key. You pick apps to block, scan the tag to lock, scan again to unlock. The physical scan is intentional friction — you can't impulse-bypass yourself by tapping a button.
 
 Built with **React Native + Expo** as a cross-platform app with native modules per platform.
 
@@ -11,7 +11,7 @@ Built with **React Native + Expo** as a cross-platform app with native modules p
 | Android  | `AccessibilityService` — overlay over blocked apps            | Real app list with icons        | ✅ Custom (emoji + timer) |
 | iOS      | `FamilyControls` + `ManagedSettings.shield` (iOS 16+)         | Apple `FamilyActivityPicker`    | ⚠️ Apple default shield   |
 
-Repo: https://github.com/autonomous-ai/NodeXit
+Repo: https://github.com/autonomous-ai/autonomous-key
 
 ---
 
@@ -43,8 +43,8 @@ Repo: https://github.com/autonomous-ai/NodeXit
 ### Setup
 
 ```bash
-git clone https://github.com/autonomous-ai/NodeXit
-cd NodeXit
+git clone https://github.com/autonomous-ai/autonomous-key
+cd autonomous-key
 npm install
 ```
 
@@ -85,7 +85,7 @@ On Simulator NFC and `FamilyActivityPicker` are blocked by Apple, so the app aut
 # 1. Plug iPhone, trust the Mac
 # 2. Settings → Privacy & Security → Developer Mode → ON (iPhone restarts)
 # 3. Xcode → Settings → Accounts → sign in Apple ID dev
-# 4. Open ios/NodeXit.xcworkspace, set Team in Signing & Capabilities
+# 4. Open ios/AutonomousKey.xcworkspace, set Team in Signing & Capabilities
 npm run ios -- --device
 ```
 
@@ -106,7 +106,7 @@ eas build --platform ios --profile preview
 
 ### 1. Pair cube (one-time)
 
-- Open NodeXit → "Pair your cube" screen
+- Open Autonomous Key → "Pair your cube" screen
 - Tap an NTAG213 sticker to the back of the phone (NFC area)
 - Tag UID is stored as the cube key
 
@@ -133,7 +133,7 @@ eas build --platform ios --profile preview
 
 ### 5. Unlock
 
-- Open NodeXit → scan cube → all apps accessible again
+- Open Autonomous Key → scan cube → all apps accessible again
 - Session is recorded in 30-day stats
 
 ### 6. Stats
@@ -154,7 +154,7 @@ eas build --platform ios --profile preview
 1. Install APK. Google Play Protect will warn; tap *Install anyway*.
 2. **Restricted settings (Android 13+)**: in-app Settings shows a 3-step wizard:
    1. Open Accessibility → tap the service → see the "Restricted setting" warning, come back
-   2. Open Apps list → tap NodeXit → ⋮ menu → "Allow restricted settings"
+   2. Open Apps list → tap Autonomous Key → ⋮ menu → "Allow restricted settings"
    3. Open Accessibility → toggle ON → confirm "Allow full control"
 3. After this, blocking works. Repeat step 2 each sideload update.
 
@@ -179,7 +179,7 @@ Without approval, ad-hoc/TestFlight/App Store builds reject the entitlement. **X
 
 ### iOS limitation: app identities are hidden
 
-Apple's `FamilyActivityPicker` returns opaque `ApplicationToken`s, not bundle IDs. NodeXit **cannot show app names or icons** for the selected apps — the JS layer only sees a count. ModeDetail on iOS shows a single "N apps selected via Apple's picker" card. Editing reopens the picker pre-ticked with the previous selection.
+Apple's `FamilyActivityPicker` returns opaque `ApplicationToken`s, not bundle IDs. Autonomous Key **cannot show app names or icons** for the selected apps — the JS layer only sees a count. ModeDetail on iOS shows a single "N apps selected via Apple's picker" card. Editing reopens the picker pre-ticked with the previous selection.
 
 By design from Apple.
 
