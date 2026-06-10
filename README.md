@@ -1,3 +1,6 @@
+<img width="680" height="382" alt="image" src="https://github.com/user-attachments/assets/324d4916-b25f-4ff2-b2be-c8e236ad2c05" />
+
+
 # Autonomous Key
 
 > Tap an NFC tag to lock yourself out of distracting apps. Tap it again to unlock.
